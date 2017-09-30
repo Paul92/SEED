@@ -1,28 +1,48 @@
 #include "ofApp.h"
+#include <cppconn/exception.h>
+
+void handleSQLException(sql::SQLException &e) {
+    cout << "# ERR: SQLException in " << __FILE__;
+    cout << "(" << __FUNCTION__ << ") on line " << __LINE__ << endl;
+    cout << "# ERR: " << e.what();
+    cout << " (MySQL error code: " << e.getErrorCode();
+    cout << ", SQLState: " << e.getSQLState() << " )" << endl;
+}
 
 ofApp::ofApp() : model(2, 2, 3, 2.4, 2.5, true, false, 1, 2, 4, 1, 2, 3, 4, 5, 1) {
-    this->dbWriter = Writer();
-    this->frame = 0;
+    frame = 0;
 }
 
 //--------------------------------------------------------------
 void ofApp::setup(){
-    this->dbWriter.prepare(this->model);
 }
 
 //--------------------------------------------------------------
 void ofApp::update(){
-    frame++;
 
-    this->model.frame = frame;
+    model.frame = frame;
 
-    if (frame % this->writeFrequency == 0) {
-        this->dbWriter.write(this->model);
+    std::stringstream stream;
+
+    stream << frame << " ";
+
+    try {
+        if (frame % saveFrequency == 0) {
+            dbWriter.add(model);
+        }
+        if (frame % writeFrequency == 0) {
+            dbWriter.clear();
+            dbWriter.write();
+        }
+    } catch(sql::SQLException &e) {
+        handleSQLException(e);
     }
 
-    std::stringstream strm;
-    strm << "fps: " << ofGetFrameRate();
-    ofSetWindowTitle(strm.str());
+    frame++;
+
+    stream << std::endl;
+    cout << stream.str();
+
 }
 
 //--------------------------------------------------------------
